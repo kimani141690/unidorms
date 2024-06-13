@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "355582312759",
+    "project_id": "unidormz-app",
+    "storage_bucket": "unidormz-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:355582312759:android:7c3fc551b6a3e9c158dab2",
+        "android_client_info": {
+          "package_name": "com.unidorms.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "355582312759-f84bq54p8lhdm416q273fa3t56jfjnsc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCI8Ws33Bx7Hq1zWgs2mzvPVPCT59HwOl8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "355582312759-f84bq54p8lhdm416q273fa3t56jfjnsc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
