@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:uuid/uuid.dart';
 import '../colors.dart';
 import 'dates_screen.dart';
 
@@ -54,17 +55,29 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         return;
       }
 
-      await FirebaseFirestore.instance.collection('reservations').add({
+      String reservationId = Uuid().v4();
+
+      await FirebaseFirestore.instance.collection('reservations').doc(reservationId).set({
         'userId': currentUser?.uid,
         'roomId': widget.roomData.id,
         'status': 'reserved',
         'timestamp': FieldValue.serverTimestamp(),
+        'expiryTime': DateTime.now().add(Duration(minutes: 2)),
       });
 
       await FirebaseFirestore.instance
           .collection('rooms')
           .doc(widget.roomData.id)
-          .update({'status': 'reserved'});
+          .update({
+        'status': 'reserved',
+        'availableCapacity': FieldValue.increment(-1),
+      });
+
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'userId': currentUser?.uid,
+        'message': 'You have reserved room ${roomData['roomType']} no. ${roomData['roomId']}',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
 
       setState(() {
         roomData['status'] = 'reserved';
@@ -77,6 +90,32 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
           duration: Duration(seconds: 2),
         ),
       );
+
+      // Schedule cancellation of reservation after 2 minutes
+      Future.delayed(Duration(minutes: 2), () async {
+        final reservation = await FirebaseFirestore.instance
+            .collection('reservations')
+            .doc(reservationId)
+            .get();
+
+        if (reservation.exists && reservation.data()?['status'] == 'reserved') {
+          await FirebaseFirestore.instance.collection('reservations').doc(reservationId).delete();
+
+          await FirebaseFirestore.instance
+              .collection('rooms')
+              .doc(widget.roomData.id)
+              .update({
+            'status': 'available',
+            'availableCapacity': FieldValue.increment(1),
+          });
+
+          await FirebaseFirestore.instance.collection('notifications').add({
+            'userId': currentUser?.uid,
+            'message': 'Your reservation for room ${roomData['roomType']} no. ${roomData['roomId']} has been cancelled due to time expiry.',
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+        }
+      });
 
       Navigator.of(context).pop();
     } catch (e) {
