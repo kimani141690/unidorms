@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../colors.dart';
 import 'bottom_navigation.dart';
+import 'room_details.dart';
 
 class CatalogueScreen extends StatefulWidget {
   @override
@@ -29,8 +30,7 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
   Future<List<DocumentSnapshot>> _fetchRooms() async {
     QuerySnapshot querySnapshot;
     if (_selectedCategory == 'All') {
-      querySnapshot =
-          await FirebaseFirestore.instance.collection('rooms').get();
+      querySnapshot = await FirebaseFirestore.instance.collection('rooms').get();
     } else {
       String roomType;
       switch (_selectedCategory) {
@@ -99,7 +99,7 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
           children: [
             CachedNetworkImage(
               imageUrl:
-                  'https://firebasestorage.googleapis.com/v0/b/unidormz-app.appspot.com/o/profile_images%2Fui_images%2Fhomepage.jpg?alt=media&token=5295feeb-c1ae-49cb-99be-ebb402c06950',
+              'https://firebasestorage.googleapis.com/v0/b/unidormz-app.appspot.com/o/profile_images%2Fui_images%2Fhomepage.jpg?alt=media&token=5295feeb-c1ae-49cb-99be-ebb402c06950',
               placeholder: (context, url) => CircularProgressIndicator(),
               errorWidget: (context, url, error) => Icon(Icons.error),
               width: double.infinity,
@@ -120,8 +120,7 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                     onTap: () => _onCategorySelected(category),
                     child: Container(
                       margin: EdgeInsets.only(right: 10),
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: _selectedCategory == category
                             ? AppColors.backlight
@@ -163,12 +162,21 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                     physics: NeverScrollableScrollPhysics(),
                     children: snapshot.data!.map((roomDoc) {
                       Map<String, dynamic> roomData =
-                          roomDoc.data() as Map<String, dynamic>;
+                      roomDoc.data() as Map<String, dynamic>;
                       bool isAvailable = roomData['status'] == 'Available';
 
                       return GestureDetector(
-                        onTap:
-                            isAvailable ? () {} : _showRoomNotAvailableMessage,
+                        onTap: isAvailable
+                            ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  RoomDetailsScreen(roomData: roomDoc),
+                            ),
+                          );
+                        }
+                            : _showRoomNotAvailableMessage,
                         child: Card(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
@@ -200,7 +208,7 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                                 SizedBox(height: 10),
                                 Row(
                                   mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       'Capacity: ${roomData['capacity']}',

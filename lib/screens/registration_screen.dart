@@ -35,6 +35,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       });
       return;
     }
+
     String? result = await _authService.registerWithEmailAndPassword(username, email, password);
     if (result == null) {
       setState(() {
@@ -45,13 +46,19 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         _errorMessage = result;
       });
     } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Account successfully created!'),
+          duration: const Duration(seconds: 2),
+        ),
       );
+      Future.delayed(const Duration(seconds: 2), () {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      });
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
