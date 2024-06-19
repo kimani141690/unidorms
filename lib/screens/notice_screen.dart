@@ -1,33 +1,59 @@
-// lib/screens/notice_screen.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../colors.dart';
 import 'bottom_navigation.dart';
 import 'home_screen.dart';
-import '../colors.dart'; // Import your colors file
 
 class NoticeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final User? currentUser = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Notification'),
       ),
       body: Container(
-        color: AppColors.textWhite, // Set the background color here
-        child: ListView(
-          padding: EdgeInsets.all(16.0),
-          children: [
-            _buildNoticeTile(context, 'Notice 1', 'All students are required to adhere to all the strict rules.'),
-            _buildNoticeTile(context, 'Notice 2', 'All students are required to adhere to all the strict rules.'),
-            _buildNoticeTile(context, 'Notice 3', 'All students are required to adhere to all the strict rules.'),
-          ],
+        color: AppColors.textWhite,
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('notifications')
+              .where('userId', isEqualTo: currentUser?.uid)
+              .orderBy('timestamp', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Center(child: Text('No notifications available'));
+            }
+
+            return ListView.builder(
+              padding: EdgeInsets.all(16.0),
+              itemCount: snapshot.data!.docs.length,
+              itemBuilder: (context, index) {
+                final notification = snapshot.data!.docs[index];
+                final data = notification.data() as Map<String, dynamic>;
+
+                return _buildNoticeTile(
+                  context,
+                  data['message'] ?? 'Notification',
+                  data['timestamp'].toDate().toString(),
+                );
+              },
+            );
+          },
         ),
       ),
       bottomNavigationBar: BottomNavigation(
         currentIndex: 2,
         onTap: (index) {
-          // Handle navigation based on index
           if (index == 0) {
-            Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen()));
+            Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => HomeScreen()));
           } else if (index == 2) {
             // Do nothing as it's the current screen
           }
@@ -38,7 +64,7 @@ class NoticeScreen extends StatelessWidget {
 
   Widget _buildNoticeTile(BuildContext context, String title, String subtitle) {
     return Card(
-      color: AppColors.lightButtonColor, // Set the card background color here
+      color: AppColors.lightButtonColor,
       child: ListTile(
         title: Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(subtitle),
@@ -49,13 +75,7 @@ class NoticeScreen extends StatelessWidget {
               return AlertDialog(
                 title: Text(title),
                 content: SingleChildScrollView(
-                  child: Text(
-                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '
-                        'Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. '
-                        'Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. '
-                        'Praesent mauris. Fusce nec tellus sed augue semper porta. '
-                        'Mauris massa. Vestibulum lacinia arcu eget nulla.',
-                  ),
+                  child: Text(subtitle),
                 ),
                 actions: <Widget>[
                   TextButton(
