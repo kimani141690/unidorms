@@ -5,7 +5,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../colors.dart';
 import 'dates_screen.dart';
 
-
 class RoomDetailsScreen extends StatefulWidget {
   final DocumentSnapshot roomData;
 
@@ -27,31 +26,34 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     currentUser = FirebaseAuth.instance.currentUser;
   }
 
+  Future<bool> _hasExistingReservationOrBooking() async {
+    final userReservation = await FirebaseFirestore.instance
+        .collection('reservations')
+        .where('userId', isEqualTo: currentUser?.uid)
+        .get();
+
+    return userReservation.docs.isNotEmpty;
+  }
+
   Future<void> _preBookRoom() async {
     setState(() {
       isLoading = true;
     });
 
     try {
-      // Check if the user already has a reserved or booked room
-      final userReservation = await FirebaseFirestore.instance
-          .collection('reservations')
-          .where('userId', isEqualTo: currentUser?.uid)
-          .get();
-
-      if (userReservation.docs.isNotEmpty) {
+      if (await _hasExistingReservationOrBooking()) {
         setState(() {
           isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('You already have a reserved or booked room.'),
+            duration: Duration(seconds: 2),
           ),
         );
         return;
       }
 
-      // Reserve the room for the user
       await FirebaseFirestore.instance.collection('reservations').add({
         'userId': currentUser?.uid,
         'roomId': widget.roomData.id,
@@ -59,7 +61,6 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      // Update the room status to reserved
       await FirebaseFirestore.instance
           .collection('rooms')
           .doc(widget.roomData.id)
@@ -73,10 +74,11 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Room reserved successfully.'),
+          duration: Duration(seconds: 2),
         ),
       );
 
-      Navigator.of(context).pop(); // Redirect back to the catalogue page
+      Navigator.of(context).pop();
     } catch (e) {
       setState(() {
         isLoading = false;
@@ -84,6 +86,42 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to reserve the room. Please try again.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _bookRoom() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      if (await _hasExistingReservationOrBooking()) {
+        setState(() {
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('You already have a reserved or booked room.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (context) => DatesScreen(roomData: widget.roomData),
+      ));
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to proceed with booking. Please try again.'),
+          duration: Duration(seconds: 2),
         ),
       );
     }
@@ -154,11 +192,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => DatesScreen(roomData: widget.roomData),
-                    ));
-                  },
+                  onPressed: _bookRoom,
                   child: Text('Book'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.backlight,
