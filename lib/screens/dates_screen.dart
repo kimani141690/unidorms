@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../colors.dart';
+import 'booking_summary_screen.dart';
 import 'home_screen.dart';
-import '../models/mpesa_service.dart'; // Import your Mpesa service
+import 'notice_screen.dart';
+import 'bottom_navigation.dart'; // Import the BottomNavigation class
 
 class DatesScreen extends StatefulWidget {
   final DocumentSnapshot roomData;
@@ -18,7 +20,7 @@ class _DatesScreenState extends State<DatesScreen> {
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;
   CalendarFormat _calendarFormat = CalendarFormat.month;
-  final TextEditingController _phoneNumberController = TextEditingController();
+  int _currentIndex = 1;
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     setState(() {
@@ -32,125 +34,50 @@ class _DatesScreenState extends State<DatesScreen> {
       }
     });
 
-    // Calculate total rent and proceed to payment
+    // Calculate total rent and redirect to summary
     if (_selectedStartDate != null && _selectedEndDate != null) {
-      _calculateAndProceedToPayment();
+      _calculateAndRedirectToSummary();
     }
   }
 
-  void _calculateAndProceedToPayment() {
+  void _calculateAndRedirectToSummary() {
     int totalDays = _selectedEndDate!.difference(_selectedStartDate!).inDays + 1;
     double totalRent = (totalDays / 30) * widget.roomData['rentPerMonth'];
 
-    _proceedToPayment(totalRent);
-  }
-
-  void _proceedToPayment(double totalRent) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Confirm Payment'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Total Rent: Ksh $totalRent'),
-            TextField(
-              controller: _phoneNumberController,
-              decoration: InputDecoration(
-                labelText: 'Enter your phone number',
-              ),
-              keyboardType: TextInputType.phone,
-            ),
-          ],
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => BookingSummaryScreen(
+          roomData: widget.roomData,
+          startDate: _selectedStartDate!,
+          endDate: _selectedEndDate!,
+          totalRent: totalRent,
+          totalDays: totalDays,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _processPayment(totalRent);
-            },
-            child: Text('Pay'),
-          ),
-        ],
       ),
     );
   }
 
-  void _processPayment(double amount) {
-    String phoneNumber = _phoneNumberController.text.trim();
-    if (phoneNumber.isNotEmpty) {
-      MpesaService().initiatePayment(phoneNumber, amount).then((_) {
-        _updateRoomCapacity();
-      }).catchError((error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error processing payment. Please try again.'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please enter your phone number.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
-  Future<void> _updateRoomCapacity() async {
-    FirebaseFirestore.instance.runTransaction((transaction) async {
-      DocumentSnapshot freshSnap = await transaction.get(widget.roomData.reference);
-      int updatedCapacity = freshSnap['availableCapacity'] - 1;
-      transaction.update(widget.roomData.reference, {'availableCapacity': updatedCapacity});
-    }).then((_) {
-      _showSuccessPopup();
-    }).catchError((error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error booking room. Please try again.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+  void _onTap(int index) {
+    setState(() {
+      _currentIndex = index;
+      if (index == 0) {
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => NoticeScreen()));
+      } else if (index == 1) {
+        // Stay on the DatesScreen
+      } else if (index == 2) {
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen()));
+      }
     });
-  }
-
-  void _showSuccessPopup() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Booking Successful'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 50),
-            SizedBox(height: 10),
-            Text('Your booking has been confirmed!'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen()));
-            },
-            child: Text('OK'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.backlight,
+        backgroundColor: AppColors.backgroundColor,
         title: Text('Choose your stay Period', style: TextStyle(color: AppColors.textBlack)),
+        centerTitle: true,
+
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: AppColors.textBlack),
           onPressed: () => Navigator.of(context).pop(),
@@ -185,16 +112,22 @@ class _DatesScreenState extends State<DatesScreen> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
-              onPressed: _selectedStartDate != null && _selectedEndDate != null ? () => _calculateAndProceedToPayment() : null,
+              onPressed: _selectedStartDate != null && _selectedEndDate != null ? () => _calculateAndRedirectToSummary() : null,
               child: Text('Proceed'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.backlight,
+                backgroundColor: AppColors.backgroundColor,
                 foregroundColor: AppColors.textBlack,
                 minimumSize: Size(double.infinity, 50),
               ),
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: BottomNavigation(
+        currentIndex: _currentIndex,
+        onTap: _onTap,
+        context: context,
+        notificationCount: 3, // Example notification count, adjust as needed
       ),
     );
   }

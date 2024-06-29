@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:uuid/uuid.dart';
 import '../colors.dart';
-import 'dates_screen.dart';
+import '../models/reservation_service.dart';
+import 'home_screen.dart';
+import 'notice_screen.dart';
+import 'reservation_screen.dart';
+import 'dates_screen.dart'; // Import the DatesScreen
+import 'bottom_navigation.dart';
 
 class RoomDetailsScreen extends StatefulWidget {
   final DocumentSnapshot roomData;
+  final bool isFromReservations;
 
-  const RoomDetailsScreen({Key? key, required this.roomData}) : super(key: key);
+  const RoomDetailsScreen({
+    Key? key,
+    required this.roomData,
+    this.isFromReservations = false,
+  }) : super(key: key);
 
   @override
   _RoomDetailsScreenState createState() => _RoomDetailsScreenState();
@@ -18,22 +26,19 @@ class RoomDetailsScreen extends StatefulWidget {
 class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
   late Map<String, dynamic> roomData;
   bool isLoading = false;
-  User? currentUser;
+  DocumentSnapshot? existingReservation;
+  int _currentIndex = 1;
 
   @override
   void initState() {
     super.initState();
     roomData = widget.roomData.data() as Map<String, dynamic>;
-    currentUser = FirebaseAuth.instance.currentUser;
+    roomData['roomId'] = widget.roomData.id; // Ensure roomId is set correctly
+    _checkExistingReservation();
   }
 
-  Future<bool> _hasExistingReservationOrBooking() async {
-    final userReservation = await FirebaseFirestore.instance
-        .collection('reservations')
-        .where('userId', isEqualTo: currentUser?.uid)
-        .get();
-
-    return userReservation.docs.isNotEmpty;
+  Future<void> _checkExistingReservation() async {
+    // Check if there is an existing reservation (this logic should be handled in your ReservationService)
   }
 
   Future<void> _preBookRoom() async {
@@ -42,41 +47,42 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     });
 
     try {
-      if (await _hasExistingReservationOrBooking()) {
+      // Check if the room has available capacity
+      DocumentSnapshot roomDoc = await FirebaseFirestore.instance.collection('rooms').doc(roomData['roomId'].toString()).get();
+      if (!roomDoc.exists) {
+        throw Exception('Room document does not exist.');
+      }
+
+      Map<String, dynamic> roomDataMap = roomDoc.data() as Map<String, dynamic>;
+      if (!roomDataMap.containsKey('availableCapacity')) {
+        throw Exception('Field "availableCapacity" does not exist.');
+      }
+
+      int availableCapacity = roomDataMap['availableCapacity'];
+      if (availableCapacity <= 0) {
+        throw Exception('No available capacity');
+      }
+
+      // Check if the user already has an existing reservation or booking
+      if (existingReservation != null && existingReservation!['status'] == 'reserved') {
         setState(() {
           isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('You already have a reserved or booked room.'),
+            content: Text('You already have a reserved room.'),
             duration: Duration(seconds: 2),
           ),
         );
         return;
       }
 
-      String reservationId = Uuid().v4();
+      // Proceed to reserve the room
+      await ReservationService().preBookRoom(roomData);
 
-      await FirebaseFirestore.instance.collection('reservations').doc(reservationId).set({
-        'userId': currentUser?.uid,
-        'roomId': widget.roomData.id,
-        'status': 'reserved',
-        'timestamp': FieldValue.serverTimestamp(),
-        'expiryTime': DateTime.now().add(Duration(minutes: 2)),
-      });
-
-      await FirebaseFirestore.instance
-          .collection('rooms')
-          .doc(widget.roomData.id)
-          .update({
-        'status': 'reserved',
+      // Decrement the available capacity
+      await FirebaseFirestore.instance.collection('rooms').doc(roomData['roomId'].toString()).update({
         'availableCapacity': FieldValue.increment(-1),
-      });
-
-      await FirebaseFirestore.instance.collection('notifications').add({
-        'userId': currentUser?.uid,
-        'message': 'You have reserved room ${roomData['roomType']} no. ${roomData['roomId']}',
-        'timestamp': FieldValue.serverTimestamp(),
       });
 
       setState(() {
@@ -84,6 +90,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         isLoading = false;
       });
 
+      // Notify the user with a pop-up message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Room reserved successfully.'),
@@ -91,87 +98,63 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         ),
       );
 
-      // Schedule cancellation of reservation after 2 minutes
-      Future.delayed(Duration(minutes: 2), () async {
-        final reservation = await FirebaseFirestore.instance
-            .collection('reservations')
-            .doc(reservationId)
-            .get();
-
-        if (reservation.exists && reservation.data()?['status'] == 'reserved') {
-          await FirebaseFirestore.instance.collection('reservations').doc(reservationId).delete();
-
-          await FirebaseFirestore.instance
-              .collection('rooms')
-              .doc(widget.roomData.id)
-              .update({
-            'status': 'available',
-            'availableCapacity': FieldValue.increment(1),
-          });
-
-          await FirebaseFirestore.instance.collection('notifications').add({
-            'userId': currentUser?.uid,
-            'message': 'Your reservation for room ${roomData['roomType']} no. ${roomData['roomId']} has been cancelled due to time expiry.',
-            'timestamp': FieldValue.serverTimestamp(),
-          });
-        }
-      });
-
-      Navigator.of(context).pop();
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => ReservationsScreen()),
+      );
     } catch (e) {
+      print(e.toString()); // Log the error for debugging
       setState(() {
         isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to reserve the room. Please try again.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
-  Future<void> _bookRoom() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      if (await _hasExistingReservationOrBooking()) {
-        setState(() {
-          isLoading = false;
-        });
+      if (e is FirebaseException) {
+        String message = handleFirestoreError(e.code);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('You already have a reserved or booked room.'),
+            content: Text(message),
             duration: Duration(seconds: 2),
           ),
         );
-        return;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to reserve the room. Please try again.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
       }
-
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (context) => DatesScreen(roomData: widget.roomData),
-      ));
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to proceed with booking. Please try again.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
     }
+  }
+
+  String handleFirestoreError(String errorCode) {
+    switch (errorCode) {
+      case 'already-exists':
+        return 'This room is already reserved.';
+      case 'out-of-range':
+        return 'Invalid capacity update.';
+      default:
+        return 'An error occurred. Please try again.';
+    }
+  }
+
+  void _onTap(int index) {
+    setState(() {
+      _currentIndex = index;
+      if (index == 0) {
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => NoticeScreen()));
+      } else if (index == 2) {
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen()));
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    print('isFromReservations: ${widget.isFromReservations}'); // Debug print
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.backlight,
-        title: Text('Room', style: TextStyle(color: AppColors.textBlack)),
+        backgroundColor: AppColors.backgroundColor,
+        title: Text('Room Details', style: TextStyle(color: AppColors.textBlack)),
+        centerTitle: true,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: AppColors.textBlack),
           onPressed: () => Navigator.of(context).pop(),
@@ -185,7 +168,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${roomData['roomType']} no. ${roomData['roomId']}',
+              '${roomData['roomType']} ', // Use roomId here
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
@@ -199,7 +182,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
             ),
             SizedBox(height: 10),
             Card(
-              color: AppColors.backlight,
+              color: AppColors.backgroundColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -210,39 +193,51 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                   children: [
                     Text('Bed: Double Decker', style: TextStyle(fontSize: 16)),
                     Text('Occupants: ${roomData['capacity']}', style: TextStyle(fontSize: 16)),
-                    Text('Amenities: Self-contained toilet and bathroom', style: TextStyle(fontSize: 16)),
+                    Text('Amenities: ${roomData['amenities']}', style: TextStyle(fontSize: 16)),
                     Text('Price: Ksh ${roomData['rentPerMonth']}', style: TextStyle(fontSize: 16)),
-                    Text('Cost Model: per person sharing', style: TextStyle(fontSize: 16)),
+                    Text('Cost Model: ${roomData['costModel']}', style: TextStyle(fontSize: 16)),
                   ],
                 ),
               ),
             ),
             SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton(
-                  onPressed: _preBookRoom,
-                  child: Text('Pre-Book'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.backlight,
-                    foregroundColor: AppColors.textBlack,
-                    minimumSize: Size(150, 50),
+            if (!widget.isFromReservations)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: _preBookRoom,
+                    child: Text('Pre-Book'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.backlight,
+                      foregroundColor: AppColors.textBlack,
+                      minimumSize: Size(150, 50),
+                    ),
                   ),
-                ),
-                ElevatedButton(
-                  onPressed: _bookRoom,
-                  child: Text('Book'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.backlight,
-                    foregroundColor: AppColors.textBlack,
-                    minimumSize: Size(150, 50),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => DatesScreen(roomData: widget.roomData),
+                        ),
+                      );
+                    },
+                    child: Text('Book'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.backlight,
+                      foregroundColor: AppColors.textBlack,
+                      minimumSize: Size(150, 50),
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigation(
+        currentIndex: _currentIndex,
+        onTap: _onTap,
+        context: context,
       ),
     );
   }

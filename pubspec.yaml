@@ -15,9 +15,19 @@ dependencies:
   google_sign_in: ^6.2.1
   firebase_storage: ^12.0.1
   cached_network_image: ^3.1.0
-  table_calendar: ^3.1.2
+  table_calendar: 3.0.8
+  audioplayers: ^6.0.0
+  mpesa_flutter_plugin: ^1.6.1
+  firebase_messaging: ^15.0.1
+  http: ^1.2.1
+  encrypt: ^5.0.0
+
+
+
   flutter:
     sdk: flutter
+  uuid: ^3.0.4
+
 
 dev_dependencies:
   flutter_lints: ^3.0.0
@@ -29,5 +39,6 @@ flutter:
 
   assets:
       - assets/images/
+      - assets/sounds/
 
 

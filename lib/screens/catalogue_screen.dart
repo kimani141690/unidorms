@@ -87,6 +87,8 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
       appBar: AppBar(
         backgroundColor: Color(0xFF8DBAC4),
         title: Text('Catalogue', style: TextStyle(color: AppColors.textBlack)),
+        centerTitle: true,
+
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: AppColors.textBlack),
           onPressed: () => Navigator.of(context).pop(),
@@ -157,10 +159,21 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return Center(child: Text('No rooms available'));
                 } else {
+                  // Use a Set to track displayed rooms to avoid duplicates
+                  Set<String> displayedRooms = Set();
+
                   return ListView(
                     shrinkWrap: true,
                     physics: NeverScrollableScrollPhysics(),
-                    children: snapshot.data!.map((roomDoc) {
+                    children: snapshot.data!.where((roomDoc) {
+                      final roomId = roomDoc.id;
+                      if (displayedRooms.contains(roomId)) {
+                        return false;
+                      } else {
+                        displayedRooms.add(roomId);
+                        return true;
+                      }
+                    }).map((roomDoc) {
                       Map<String, dynamic> roomData =
                       roomDoc.data() as Map<String, dynamic>;
                       bool isAvailable = roomData['status'] == 'Available';
@@ -244,6 +257,7 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
       bottomNavigationBar: BottomNavigation(
         currentIndex: _currentIndex,
         onTap: _onTap,
+        context: context,
       ),
     );
   }

@@ -19,6 +19,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  int _currentIndex = 1;
   File? _profileImage;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -139,6 +140,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return 'https://example.com/profileImage.jpg';
   }
 
+  void _onTap(int index) {
+    setState(() {
+      _currentIndex = index;
+      if (index == 0) {
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen(userData: widget.userData)));
+      } else if (index == 2) {
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => NoticeScreen()));
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -149,6 +161,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textBlack),
         ),
+        centerTitle: true,
+
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -206,14 +220,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavigation(
-        currentIndex: 1,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen(userData: widget.userData)));
-          } else if (index == 2) {
-            Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => NoticeScreen()));
-          }
-        },
+        currentIndex: _currentIndex,
+        onTap: _onTap,
+        context: context,
       ),
     );
   }

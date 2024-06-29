@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:unidorms/colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:unidorms/screens/reservation_screen.dart';
+import '../models/homescreen_service.dart';
 import 'login_screen.dart';
 import 'bottom_navigation.dart';
-import 'profile_screen.dart'; 
-import 'catalogue_screen.dart';
-
+import 'profile_screen.dart';
+import 'notice_screen.dart';
+import 'maintenance.dart';
+import 'guest.dart';
+import 'display_reviews.dart';
 
 class HomeScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -19,9 +22,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomeScreen> {
+  final HomeScreenService _homeScreenService = HomeScreenService();
   int _currentIndex = 0;
   User? user;
   Map<String, dynamic>? userData;
+  Map<String, dynamic>? roomData;
 
   @override
   void initState() {
@@ -35,21 +40,29 @@ class _HomePageState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserData() async {
-    if (user != null) {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
-      setState(() {
-        userData = userDoc.data() as Map<String, dynamic>?;
-      });
-    }
+    userData = await _homeScreenService.loadUserData();
+    setState(() {});
+    _loadRoomData(); // Load room data after loading user data
+  }
+
+  Future<void> _loadRoomData() async {
+    roomData = await _homeScreenService.loadRoomData();
+    setState(() {});
   }
 
   void _onTap(int index) {
     setState(() {
       _currentIndex = index;
-      if (index == 0) {
+      if (index == 1) {
         Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen(userData: userData)));
+      } else if (index == 0) {
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => NoticeScreen()));
       } else if (index == 2) {
-        // Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => NoticeScreen()));
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => ProfileScreen(userData: userData, onProfileUpdated: (updatedData) {
+          setState(() {
+            userData = updatedData;
+          });
+        })));
       }
     });
   }
@@ -59,6 +72,40 @@ class _HomePageState extends State<HomeScreen> {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => LoginScreen()),
     );
+  }
+
+  void _handleCheckInCheckOut() async {
+    if (roomData != null && roomData!['bookingId'] != null) {
+      String newStatus = roomData!['status'] == 'checkedin' ? 'checkedout' : 'checkedin';
+      await _homeScreenService.updateBookingStatus(roomData!['bookingId'], newStatus);
+      _loadRoomData(); // Refresh room data after update
+
+      // Show Snackbar
+      String message = newStatus == 'checkedin' ? 'Checked in successfully' : 'Checked out successfully';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _showBookingRequiredSnackbar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('You must have an existing booking to access this service.'),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _handleServiceCardTap(Widget destination) {
+    if (roomData != null) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (context) => destination));
+    } else {
+      _showBookingRequiredSnackbar();
+    }
   }
 
   @override
@@ -77,7 +124,7 @@ class _HomePageState extends State<HomeScreen> {
             Text(
               'Welcome ${userData?['username'] ?? 'User'}',
               style: TextStyle(
-                fontSize: 14.0, // Set your desired font size
+                fontSize: 14.0,
                 color: AppColors.textBlack,
               ),
             ),
@@ -109,8 +156,18 @@ class _HomePageState extends State<HomeScreen> {
               ),
               child: ListTile(
                 title: Text('My Room'),
-                subtitle: Text('4 Bed Deluxe Room\nRoom No. 210\nStatus: Checked In'),
-                trailing: Icon(Icons.arrow_forward),
+                subtitle: roomData != null
+                    ? Text('${roomData!['roomType']} Room\nRoom No. ${roomData!['roomNumber']}\nStatus: ${roomData!['status']}')
+                    : Text('No room data available.\nYou do not have any room booked.'),
+                trailing: roomData != null
+                    ? ElevatedButton(
+                  onPressed: _handleCheckInCheckOut,
+                  child: Text(roomData!['status'] == 'checkedin' ? 'Check Out' : 'Check In'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(100, 40), // Adjust the button size
+                  ),
+                )
+                    : null,
               ),
             ),
             SizedBox(height: 20),
@@ -129,8 +186,16 @@ class _HomePageState extends State<HomeScreen> {
                   imagePath: 'assets/images/catalogue.png',
                   label: 'Catalogue',
                   onTap: () => Navigator.pushNamed(context, '/catalogue'),
-                  ),   
-                ServiceCard(imagePath: 'assets/images/payment.png', label: 'Payment'),
+                ),
+                ServiceCard(
+                  imagePath: 'assets/images/reservations.png',
+                  label: 'Reservations',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ReservationsScreen(),
+                    ),
+                  ),
+                ),
                 ServiceCard(
                   imagePath: 'assets/images/profile.png',
                   label: 'Profile',
@@ -147,9 +212,28 @@ class _HomePageState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                ServiceCard(imagePath: 'assets/images/maintenance.png', label: 'Maintenance'),
-                ServiceCard(imagePath: 'assets/images/guest.png', label: 'Guest'),
-                ServiceCard(imagePath: 'assets/images/checkin.png', label: 'Check In'),
+                ServiceCard(
+                  imagePath: 'assets/images/maintenance.png',
+                  label: 'Maintenance',
+                  onTap: () => _handleServiceCardTap(MaintenanceScreen(
+                    userData: userData,
+                    roomData: roomData,
+                  )),
+                ),
+                ServiceCard(
+                  imagePath: 'assets/images/guest.png',
+                  label: 'Guest',
+                  onTap: () => _handleServiceCardTap(GuestVisitRequestScreen(
+                    roomData: roomData,
+                    userData: userData,
+
+                  )),
+                ),
+                ServiceCard(
+                  imagePath: 'assets/images/reviews.png',
+                  label: 'Reviews',
+                  onTap: () => _handleServiceCardTap(ReviewScreen()),
+                ),
               ],
             ),
           ],
@@ -158,6 +242,7 @@ class _HomePageState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavigation(
         currentIndex: _currentIndex,
         onTap: _onTap,
+        context: context,
       ),
     );
   }

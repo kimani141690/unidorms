@@ -17,6 +17,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
 
+  bool _obscureText = true;
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -110,73 +112,101 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 20),
 
-                TextFormField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    labelStyle: const TextStyle(color: AppColors.textBlack),
-                    filled: true,
-                    fillColor: AppColors.backlight,
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide.none,
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) {
-                      return 'Please enter your email';
-                    }
-                    // Add more validation if needed
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    labelStyle: const TextStyle(color: AppColors.textBlack),
-                    filled: true,
-                    fillColor: AppColors.backlight,
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide.none,
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                  obscureText: true,
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) {
-                      return 'Please enter your password';
-                    }
-                    // Add more validation if needed
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 20),
-
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: AppColors.textWhite,
-                    backgroundColor: AppColors.backgroundColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-                    minimumSize: const Size(400, 40),
-                  ),
-                  onPressed: _login,
-                  child: const Text('Login'),
-                ),
-
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const ForgotPasswordScreen(),
+                SizedBox(
+                  width: 400,
+                  height: 45, // Adjust the height as needed
+                  child: TextFormField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      labelStyle: const TextStyle(color: AppColors.textBlack),
+                      filled: true,
+                      fillColor: AppColors.backlight,
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.circular(20.0),
                       ),
-                    );
-                  },
-                  child: const Text(
-                    'Forgot Password?',
-                    style: TextStyle(color: AppColors.textBlack),
+                    ),
+                    validator: (value) {
+                      if (value?.isEmpty ?? true) {
+                        return 'Please enter your email';
+                      }
+                      // Add more validation if needed
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: 400,
+                  height: 45, // Adjust the height as needed
+                  child: TextFormField(
+                    controller: _passwordController,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      labelStyle: const TextStyle(color: AppColors.textBlack),
+                      filled: true,
+                      fillColor: AppColors.backlight,
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.circular(20.0),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureText ? Icons.visibility_off : Icons.visibility,
+                          color: AppColors.textBlack,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureText = !_obscureText;
+                          });
+                        },
+                      ),
+                    ),
+                    obscureText: _obscureText,
+                    validator: (value) {
+                      if (value?.isEmpty ?? true) {
+                        return 'Please enter your password';
+                      }
+                      // Add more validation if needed
+                      return null;
+                    },
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const ForgotPasswordScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Forgot Password?',
+                      style: TextStyle(
+                        color: AppColors.textBlack,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                SizedBox(
+                  width: 400,
+                  height: 45, // Ensure the button height matches the text fields
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: AppColors.textWhite,
+                      backgroundColor: AppColors.backgroundColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                      minimumSize: const Size.fromHeight(40),
+                    ),
+                    onPressed: _login,
+                    child: const Text('Login'),
                   ),
                 ),
 
@@ -194,9 +224,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.backgroundColor,
                     foregroundColor: AppColors.textBlack,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-                    minimumSize: const Size(100, 40),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                    minimumSize: const Size(0, 40), // Set minimum size to zero and adjust height
                   ),
                   onPressed: _loginWithGoogle,
                   icon: Image.asset('assets/images/google.png', width: 20, height: 20,),
