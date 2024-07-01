@@ -112,7 +112,7 @@ class _HomePageState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color(0xFF8DBAC4),
+        backgroundColor: AppColors.backgroundColor,
         title: Row(
           children: [
             CircleAvatar(
@@ -130,7 +130,7 @@ class _HomePageState extends State<HomeScreen> {
             ),
             Spacer(),
             IconButton(
-              icon: Icon(Icons.logout),
+              icon: Icon(Icons.power_settings_new),
               onPressed: _logout,
             ),
           ],
