@@ -141,10 +141,16 @@ class _HomePageState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CachedNetworkImage(
-              imageUrl: 'https://firebasestorage.googleapis.com/v0/b/unidormz-app.appspot.com/o/profile_images%2Fui_images%2Fhomepage.jpg?alt=media&token=5295feeb-c1ae-49cb-99be-ebb402c06950',
-              placeholder: (context, url) => CircularProgressIndicator(),
-              errorWidget: (context, url, error) => Icon(Icons.error),
+            // CachedNetworkImage(
+            //   imageUrl: 'https://firebasestorage.googleapis.com/v0/b/unidormz-app.appspot.com/o/profile_images%2Fui_images%2Fhomepage.jpg?alt=media&token=5295feeb-c1ae-49cb-99be-ebb402c06950',
+            //   placeholder: (context, url) => CircularProgressIndicator(),
+            //   errorWidget: (context, url, error) => Icon(Icons.error),
+            //   width: double.infinity,
+            //   height: 200,
+            //   fit: BoxFit.cover,
+            // ),
+            Image.asset(
+              'assets/images/homepage.jpg',
               width: double.infinity,
               height: 200,
               fit: BoxFit.cover,
@@ -164,6 +170,8 @@ class _HomePageState extends State<HomeScreen> {
                   onPressed: _handleCheckInCheckOut,
                   child: Text(roomData!['status'] == 'checkedin' ? 'Check Out' : 'Check In'),
                   style: ElevatedButton.styleFrom(
+                    foregroundColor: AppColors.textBlack,
+                    backgroundColor: AppColors.backgroundColor,
                     minimumSize: Size(100, 40), // Adjust the button size
                   ),
                 )
@@ -178,6 +186,7 @@ class _HomePageState extends State<HomeScreen> {
             SizedBox(height: 20),
             GridView.count(
               shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(), // Prevents GridView from scrolling
               crossAxisCount: 3,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
@@ -226,7 +235,6 @@ class _HomePageState extends State<HomeScreen> {
                   onTap: () => _handleServiceCardTap(GuestVisitRequestScreen(
                     roomData: roomData,
                     userData: userData,
-
                   )),
                 ),
                 ServiceCard(

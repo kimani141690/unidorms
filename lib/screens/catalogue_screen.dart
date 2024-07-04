@@ -88,68 +88,69 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
         backgroundColor: Color(0xFF8DBAC4),
         title: Text('Catalogue', style: TextStyle(color: AppColors.textBlack)),
         centerTitle: true,
-
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: AppColors.textBlack),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CachedNetworkImage(
-              imageUrl:
-              'https://firebasestorage.googleapis.com/v0/b/unidormz-app.appspot.com/o/profile_images%2Fui_images%2Fhomepage.jpg?alt=media&token=5295feeb-c1ae-49cb-99be-ebb402c06950',
-              placeholder: (context, url) => CircularProgressIndicator(),
-              errorWidget: (context, url, error) => Icon(Icons.error),
-              width: double.infinity,
-              height: 200,
-              fit: BoxFit.cover,
-            ),
-            SizedBox(height: 20),
-            Text(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Image.asset(
+            'assets/images/homepage.jpg',
+            width: double.infinity,
+            height: 200,
+            fit: BoxFit.cover,
+          ),
+          SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
               'Category',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 10),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: categories.map((category) {
-                  return GestureDetector(
-                    onTap: () => _onCategorySelected(category),
-                    child: Container(
-                      margin: EdgeInsets.only(right: 10),
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
+          ),
+          SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: categories.map((category) {
+                return GestureDetector(
+                  onTap: () => _onCategorySelected(category),
+                  child: Container(
+                    margin: EdgeInsets.only(right: 10),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _selectedCategory == category
+                          ? AppColors.backlight
+                          : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      category,
+                      style: TextStyle(
                         color: _selectedCategory == category
-                            ? AppColors.backlight
-                            : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        category,
-                        style: TextStyle(
-                          color: _selectedCategory == category
-                              ? Colors.white
-                              : Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
+                            ? Colors.white
+                            : Colors.black,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
+                  ),
+                );
+              }).toList(),
             ),
-            SizedBox(height: 20),
-            Text(
+          ),
+          SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
               'Room List',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 10),
-            FutureBuilder<List<DocumentSnapshot>>(
+          ),
+          SizedBox(height: 10),
+          Expanded(
+            child: FutureBuilder<List<DocumentSnapshot>>(
               future: roomsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -163,8 +164,6 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                   Set<String> displayedRooms = Set();
 
                   return ListView(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
                     children: snapshot.data!.where((roomDoc) {
                       final roomId = roomDoc.id;
                       if (displayedRooms.contains(roomId)) {
@@ -224,7 +223,7 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                                   MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      'Capacity: ${roomData['capacity']}',
+                                      'Available Capacity: ${roomData['availableCapacity']}',
                                       style: TextStyle(
                                         color: Colors.blue,
                                         fontWeight: FontWeight.bold,
@@ -251,8 +250,8 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                 }
               },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       bottomNavigationBar: BottomNavigation(
         currentIndex: _currentIndex,
