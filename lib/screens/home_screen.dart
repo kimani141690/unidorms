@@ -4,11 +4,12 @@ import 'package:unidorms/colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:unidorms/screens/reservation_screen.dart';
 import '../models/homescreen_service.dart';
+import 'display_guest.dart';
+import 'display_maintenance.dart';
 import 'login_screen.dart';
 import 'bottom_navigation.dart';
 import 'profile_screen.dart';
 import 'notice_screen.dart';
-import 'maintenance.dart';
 import 'guest.dart';
 import 'display_reviews.dart';
 
@@ -224,7 +225,7 @@ class _HomePageState extends State<HomeScreen> {
                 ServiceCard(
                   imagePath: 'assets/images/maintenance.png',
                   label: 'Maintenance',
-                  onTap: () => _handleServiceCardTap(MaintenanceScreen(
+                  onTap: () => _handleServiceCardTap(MaintenanceRequestsListScreen(
                     userData: userData,
                     roomData: roomData,
                   )),
@@ -232,7 +233,7 @@ class _HomePageState extends State<HomeScreen> {
                 ServiceCard(
                   imagePath: 'assets/images/guest.png',
                   label: 'Guest',
-                  onTap: () => _handleServiceCardTap(GuestVisitRequestScreen(
+                  onTap: () => _handleServiceCardTap(GuestRequestsListScreen(
                     roomData: roomData,
                     userData: userData,
                   )),

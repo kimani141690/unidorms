@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:unidorms/screens/display_guest.dart';
+import 'package:unidorms/screens/display_maintenance.dart';
 import 'package:unidorms/screens/display_reviews.dart';
 import 'package:unidorms/screens/guest.dart';
 import 'package:unidorms/screens/maintenance.dart';
 import 'package:unidorms/screens/reservation_screen.dart';
 import 'package:unidorms/screens/write_reviews.dart';
 import 'models/auth_service.dart';
+import 'models/update_rooms.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/notice_screen.dart';
@@ -26,6 +29,7 @@ void main() async {
   await Firebase.initializeApp();
   await adminSetup(); // Call the admin setup function
   await populateRooms();
+  await updateRoomStatus();
 
   runApp(MyApp());
 }
@@ -54,7 +58,9 @@ class MyApp extends StatelessWidget {
         '/catalogue': (context) => CatalogueScreen(),
         '/reservation': (context) => ReservationsScreen(),
         '/maintenance': (context) => MaintenanceScreen(),
+        '/maintenance-requests': (context) => MaintenanceRequestsListScreen(),
         '/guest': (context) => GuestVisitRequestScreen(),
+        '/guest-requests': (context) => GuestRequestsListScreen(),
         '/reviews': (context) => ReviewScreen(),
         '/write-review': (context) => WriteReviewScreen(),
         '/guest-approval': (context) => GuestApprovalScreen(),

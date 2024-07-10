@@ -35,7 +35,7 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
       String roomType;
       switch (_selectedCategory) {
         case 'Single Room':
-          roomType = 'Single Bed Delux Room';
+          roomType = 'Single Bed Deluxe Room';
           break;
         case '2 Bed Room':
           roomType = '2-Bed Room Deluxe Room';
