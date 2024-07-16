@@ -241,18 +241,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 10),
 
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.backgroundColor,
-                    foregroundColor: AppColors.textBlack,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-                    minimumSize: const Size(0, 40), // Set minimum size to zero and adjust height
-                  ),
-                  onPressed: _loginWithGoogle,
-                  icon: Image.asset('assets/images/google.png', width: 20, height: 20,),
-                  label: const Text('Login with Google'),
-                ),
-                const SizedBox(height: 20),
+                // ElevatedButton.icon(
+                //   style: ElevatedButton.styleFrom(
+                //     backgroundColor: AppColors.backgroundColor,
+                //     foregroundColor: AppColors.textBlack,
+                //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                //     minimumSize: const Size(0, 40), // Set minimum size to zero and adjust height
+                //   ),
+                //   onPressed: _loginWithGoogle,
+                //   icon: Image.asset('assets/images/google.png', width: 20, height: 20,),
+                //   label: const Text('Login with Google'),
+                // ),
+                // const SizedBox(height: 20),
 
                 GestureDetector(
                   onTap: () {

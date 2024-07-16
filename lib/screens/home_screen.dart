@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:unidorms/colors.dart';
@@ -10,7 +11,7 @@ import 'login_screen.dart';
 import 'bottom_navigation.dart';
 import 'profile_screen.dart';
 import 'notice_screen.dart';
-import 'guest.dart';
+
 import 'display_reviews.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -24,20 +25,35 @@ class HomeScreen extends StatefulWidget {
 
 class _HomePageState extends State<HomeScreen> {
   final HomeScreenService _homeScreenService = HomeScreenService();
-  int _currentIndex = 0;
+  int _currentIndex = 1;
   User? user;
   Map<String, dynamic>? userData;
   Map<String, dynamic>? roomData;
+  int _notificationCount = 0;
 
   @override
   void initState() {
     super.initState();
     user = FirebaseAuth.instance.currentUser;
+    _fetchUnreadCount();
+
     if (widget.userData != null) {
       userData = widget.userData;
     } else {
       _loadUserData();
     }
+  }
+
+  void _fetchUnreadCount() async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('notifications')
+        .where('userId', isEqualTo: user?.uid)
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    setState(() {
+      _notificationCount = querySnapshot.docs.length;
+    });
   }
 
   Future<void> _loadUserData() async {
@@ -55,15 +71,20 @@ class _HomePageState extends State<HomeScreen> {
     setState(() {
       _currentIndex = index;
       if (index == 1) {
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen(userData: userData)));
+        Navigator.of(context)
+            .pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen(userData: userData)));
       } else if (index == 0) {
         Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => NoticeScreen()));
       } else if (index == 2) {
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => ProfileScreen(userData: userData, onProfileUpdated: (updatedData) {
-          setState(() {
-            userData = updatedData;
-          });
-        })));
+        Navigator.of(context).pushReplacement(MaterialPageRoute(
+            builder: (context) => ProfileScreen(
+              userData: userData,
+              onProfileUpdated: (updatedData) {
+                setState(() {
+                  userData = updatedData;
+                });
+              },
+            )));
       }
     });
   }
@@ -138,112 +159,111 @@ class _HomePageState extends State<HomeScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // CachedNetworkImage(
-            //   imageUrl: 'https://firebasestorage.googleapis.com/v0/b/unidormz-app.appspot.com/o/profile_images%2Fui_images%2Fhomepage.jpg?alt=media&token=5295feeb-c1ae-49cb-99be-ebb402c06950',
-            //   placeholder: (context, url) => CircularProgressIndicator(),
-            //   errorWidget: (context, url, error) => Icon(Icons.error),
-            //   width: double.infinity,
-            //   height: 200,
-            //   fit: BoxFit.cover,
-            // ),
             Image.asset(
               'assets/images/homepage.jpg',
               width: double.infinity,
               height: 200,
               fit: BoxFit.cover,
             ),
-            SizedBox(height: 20),
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: ListTile(
-                title: Text('My Room'),
-                subtitle: roomData != null
-                    ? Text('${roomData!['roomType']} Room\nRoom No. ${roomData!['roomNumber']}\nStatus: ${roomData!['status']}')
-                    : Text('No room data available.\nYou do not have any room booked.'),
-                trailing: roomData != null
-                    ? ElevatedButton(
-                  onPressed: _handleCheckInCheckOut,
-                  child: Text(roomData!['status'] == 'checkedin' ? 'Check Out' : 'Check In'),
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: AppColors.textBlack,
-                    backgroundColor: AppColors.backgroundColor,
-                    minimumSize: Size(100, 40), // Adjust the button size
-                  ),
-                )
-                    : null,
-              ),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Services',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 20),
-            GridView.count(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(), // Prevents GridView from scrolling
-              crossAxisCount: 3,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              children: [
-                ServiceCard(
-                  imagePath: 'assets/images/catalogue.png',
-                  label: 'Catalogue',
-                  onTap: () => Navigator.pushNamed(context, '/catalogue'),
-                ),
-                ServiceCard(
-                  imagePath: 'assets/images/reservations.png',
-                  label: 'Reservations',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ReservationsScreen(),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: ListTile(
+                      title: Text('My Room'),
+                      subtitle: roomData != null
+                          ? Text(
+                          '${roomData!['roomType']} Room\nRoom No. ${roomData!['roomNumber']}\nStatus: ${roomData!['status']}')
+                          : Text('No room data available.\nYou do not have any room booked.'),
+                      trailing: roomData != null
+                          ? ElevatedButton(
+                        onPressed: _handleCheckInCheckOut,
+                        child: Text(roomData!['status'] == 'checkedin' ? 'Check Out' : 'Check In'),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: AppColors.textBlack,
+                          backgroundColor: AppColors.backgroundColor,
+                          minimumSize: Size(100, 40), // Adjust the button size
+                        ),
+                      )
+                          : null,
                     ),
                   ),
-                ),
-                ServiceCard(
-                  imagePath: 'assets/images/profile.png',
-                  label: 'Profile',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ProfileScreen(
-                        userData: userData,
-                        onProfileUpdated: (updatedData) {
-                          setState(() {
-                            userData = updatedData;
-                          });
-                        },
+                  SizedBox(height: 20),
+                  Text(
+                    'Services',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 20),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(), // Prevents GridView from scrolling
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    children: [
+                      ServiceCard(
+                        imagePath: 'assets/images/catalogue.png',
+                        label: 'Catalogue',
+                        onTap: () => Navigator.pushNamed(context, '/catalogue'),
                       ),
-                    ),
+                      ServiceCard(
+                        imagePath: 'assets/images/reservations.png',
+                        label: 'Reservations',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => ReservationsScreen(),
+                          ),
+                        ),
+                      ),
+                      ServiceCard(
+                        imagePath: 'assets/images/profile.png',
+                        label: 'Profile',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => ProfileScreen(
+                              userData: userData,
+                              onProfileUpdated: (updatedData) {
+                                setState(() {
+                                  userData = updatedData;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      ServiceCard(
+                        imagePath: 'assets/images/maintenance.png',
+                        label: 'Maintenance',
+                        onTap: () => _handleServiceCardTap(MaintenanceRequestsListScreen(
+                          userData: userData,
+                          roomData: roomData,
+                        )),
+                      ),
+                      ServiceCard(
+                        imagePath: 'assets/images/guest.png',
+                        label: 'Guest',
+                        onTap: () => _handleServiceCardTap(GuestRequestsListScreen(
+                          roomData: roomData,
+                          userData: userData,
+                        )),
+                      ),
+                      ServiceCard(
+                        imagePath: 'assets/images/reviews.png',
+                        label: 'Reviews',
+                        onTap: () => _handleServiceCardTap(ReviewScreen()),
+                      ),
+                    ],
                   ),
-                ),
-                ServiceCard(
-                  imagePath: 'assets/images/maintenance.png',
-                  label: 'Maintenance',
-                  onTap: () => _handleServiceCardTap(MaintenanceRequestsListScreen(
-                    userData: userData,
-                    roomData: roomData,
-                  )),
-                ),
-                ServiceCard(
-                  imagePath: 'assets/images/guest.png',
-                  label: 'Guest',
-                  onTap: () => _handleServiceCardTap(GuestRequestsListScreen(
-                    roomData: roomData,
-                    userData: userData,
-                  )),
-                ),
-                ServiceCard(
-                  imagePath: 'assets/images/reviews.png',
-                  label: 'Reviews',
-                  onTap: () => _handleServiceCardTap(ReviewScreen()),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -251,6 +271,7 @@ class _HomePageState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavigation(
         currentIndex: _currentIndex,
         onTap: _onTap,
+        notificationCount: _notificationCount,
         context: context,
       ),
     );

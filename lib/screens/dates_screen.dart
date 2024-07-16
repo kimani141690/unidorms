@@ -43,6 +43,8 @@ class _DatesScreenState extends State<DatesScreen> {
   void _calculateAndRedirectToSummary() {
     int totalDays = _selectedEndDate!.difference(_selectedStartDate!).inDays + 1;
     double totalRent = (totalDays / 30) * widget.roomData['rentPerMonth'];
+    double totalRentRounded = totalRent.ceilToDouble();
+
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -50,7 +52,7 @@ class _DatesScreenState extends State<DatesScreen> {
           roomData: widget.roomData,
           startDate: _selectedStartDate!,
           endDate: _selectedEndDate!,
-          totalRent: totalRent,
+          totalRent: totalRentRounded,
           totalDays: totalDays,
         ),
       ),

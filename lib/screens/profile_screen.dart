@@ -21,21 +21,41 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  int _currentIndex = 1;
+  int _currentIndex = 2;
   File? _profileImage;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneNumberController = TextEditingController();
   final ProfileService _profileService = ProfileService();
+   User? user = FirebaseAuth.instance.currentUser;
+
+  // final User? currentUser = FirebaseAuth.instance.currentUser;
+  int _notificationCount = 0;
+
 
   @override
   void initState() {
     super.initState();
+
     if (widget.userData != null) {
       _usernameController.text = widget.userData!['username'] ?? '';
       _emailController.text = widget.userData!['email'] ?? '';
       _phoneNumberController.text = widget.userData!['phoneNumber'] ?? '';
+      _fetchUnreadCount();
+
     }
+  }
+
+  void _fetchUnreadCount() async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('notifications')
+        .where('userId', isEqualTo: user?.uid)
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    setState(() {
+      _notificationCount = querySnapshot.docs.length;
+    });
   }
 
   @override
@@ -93,7 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final String phoneNumber = _phoneNumberController.text;
 
     // Call the backend function to update the profile
-    User? user = FirebaseAuth.instance.currentUser;
+     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       await _profileService.updateProfile(user.uid, username, email, phoneNumber, _profileImage);
 
@@ -148,13 +168,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _onTap(int index) {
     setState(() {
       _currentIndex = index;
-      if (index == 0) {
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen(userData: widget.userData)));
-      } else if (index == 2) {
+      if (index == 1) {
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => HomeScreen()));
+        // Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen(userData: widget.userData)));
+      } else if (index == 0) {
+
+
         Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => NoticeScreen()));
       }
     });
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -224,6 +250,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       bottomNavigationBar: BottomNavigation(
         currentIndex: _currentIndex,
         onTap: _onTap,
+        notificationCount: _notificationCount,
+
         context: context,
       ),
     );

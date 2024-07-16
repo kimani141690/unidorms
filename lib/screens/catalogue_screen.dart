@@ -61,16 +61,20 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
     });
   }
 
+
   void _onTap(int index) {
     setState(() {
       _currentIndex = index;
-      if (index == 1) {
-        Navigator.of(context).pushReplacementNamed('/home');
-      } else if (index == 0) {
+      if (index == 0) {
         Navigator.of(context).pushReplacementNamed('/notice');
+      } else if (index == 1) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else if (index == 2) {
+        Navigator.of(context).pushReplacementNamed('/profile');
       }
     });
   }
+
 
   void _showRoomNotAvailableMessage() {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -113,6 +117,8 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
           SizedBox(height: 10),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+
             child: Row(
               children: categories.map((category) {
                 return GestureDetector(
@@ -122,7 +128,7 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: _selectedCategory == category
-                          ? AppColors.backlight
+                          ? AppColors.backgroundColor
                           : Colors.grey[300],
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -154,7 +160,14 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
               future: roomsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
+                  return Center(
+                    child: SizedBox(
+                      width: 30.0, // Set the desired width
+                      height: 30.0, // Set the desired height
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+
                 } else if (snapshot.hasError) {
                   return Center(child: Text('Error fetching rooms'));
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {

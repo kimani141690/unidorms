@@ -62,7 +62,14 @@ class _NoticeScreenState extends State<NoticeScreen> {
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator());
+              return Center(
+                child: SizedBox(
+                  width: 30.0, // Set the desired width
+                  height: 30.0, // Set the desired height
+                  child: CircularProgressIndicator(),
+                ),
+              );
+
             }
 
             if (snapshot.hasError) {
@@ -112,6 +119,7 @@ class _NoticeScreenState extends State<NoticeScreen> {
             Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => HomeScreen()));
           }
+
         },
         notificationCount: _notificationCount,
         context: context, // Pass the context here
@@ -149,7 +157,7 @@ class _NoticeScreenState extends State<NoticeScreen> {
                 actions: <Widget>[
                   TextButton(
                     style: TextButton.styleFrom(
-                      backgroundColor: AppColors.buttonColor,
+                      backgroundColor: AppColors.backgroundColor,
                     ),
                     child: Text(
                       'Close',

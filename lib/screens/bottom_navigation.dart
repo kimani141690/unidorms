@@ -62,7 +62,7 @@ class BottomNavigation extends StatelessWidget {
           label: 'Profile',
         ),
       ],
-      selectedItemColor: Colors.grey,
+      selectedItemColor: Colors.black,
     );
   }
 }
